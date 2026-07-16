@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayerLens — Wallet Verdict</title>
+<meta name="description" content="Вердикт по кошельку игрока за секунды — VIP score, риск-флаги, гемблинг-футпринт. TRON / USDT.">
+<style>
+  :root{
+    --bg:#0b0e14; --card:#131824; --card2:#1a2130; --text:#e8ecf4; --muted:#8b94a7;
+    --accent:#4f8cff; --green:#2ecc8f; --yellow:#f5b942; --red:#ff5c6c; --border:#232c40;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;padding:40px 20px}
+  .wrap{max-width:860px;margin:0 auto}
+  .logo{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+  .logo span{color:var(--accent)}
+  .tagline{color:var(--muted);font-size:14px;margin-bottom:28px}
+  .searchbar{display:flex;gap:10px;margin-bottom:14px}
+  input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-size:15px;font-family:monospace}
+  input:focus{outline:none;border-color:var(--accent)}
+  button{background:var(--accent);border:none;border-radius:10px;padding:0 26px;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}
+  .demos{color:var(--muted);font-size:13px;margin-bottom:30px}
+  .demos a{color:var(--accent);cursor:pointer;text-decoration:none;margin-right:10px}
+  .hidden{display:none}
+  .error{background:#2a1520;border:1px solid var(--red);border-radius:10px;padding:14px 18px;color:var(--red);margin-bottom:20px}
+  .progress{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .demo-badge{display:inline-block;background:#2a2410;color:var(--yellow);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:10px;vertical-align:middle}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px}
+  .verdict-head{display:flex;align-items:center;gap:26px}
+  .gauge{position:relative;width:110px;height:110px;flex-shrink:0}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge .num b{font-size:30px}
+  .gauge .num span{font-size:10px;color:var(--muted);text-transform:uppercase}
+  .archetype{font-size:24px;font-weight:800;margin-bottom:6px}
+  .risk-pill{display:inline-block;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700}
+  .risk-low{background:#10281f;color:var(--green)} .risk-medium{background:#2a2410;color:var(--yellow)} .risk-high{background:#2a1520;color:var(--red)}
+  .summary{background:var(--card2);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.6;margin-top:16px;color:#c8d0e0}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .metric{background:var(--card2);border-radius:10px;padding:12px 14px}
+  .metric .v{font-size:17px;font-weight:700} .metric .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .flag{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;align-items:baseline}
+  .flag:last-child{border:none}
+  .flag .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .bar-row{margin-bottom:12px}
+  .bar-row .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bar{height:8px;background:var(--card2);border-radius:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
+  .cp-table{width:100%;border-collapse:collapse;font-size:13px}
+  .cp-table th{color:var(--muted);text-align:left;font-weight:500;padding:6px 8px;font-size:11px;text-transform:uppercase}
+  .cp-table td{padding:8px;border-top:1px solid var(--border)}
+  .cp-table .mono{font-family:monospace;font-size:12px;color:var(--muted)}
+  .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase}
+  .tag-casino{background:#241534;color:#c084fc} .tag-exchange{background:#0f2333;color:#38bdf8} .tag-contract{background:#1f2937;color:#9ca3af}
+  .full{grid-column:1 / -1}
+  .footer{color:var(--muted);font-size:12px;margin-top:30px;line-height:1.6}
+  @media(max-width:700px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Player<span>Lens</span></div>
+  <div class="tagline">Вердикт по кошельку игрока за секунды — VIP, риск, гемблинг-футпринт. TRON / USDT.</div>
+
+  <div class="searchbar">
+    <input id="addr" placeholder="TRON-адрес игрока (T...)" spellcheck="false">
+    <button id="go">Вердикт</button>
+  </div>
+  <div class="demos">Демо: <a data-demo="demo:whale">кит</a> <a data-demo="demo:hunter">бонус-хантер</a> <a data-demo="demo:regular">обычный игрок</a></div>
+
+  <div id="progress" class="progress hidden"></div>
+  <div id="err" class="error hidden"></div>
+
+  <div id="result" class="hidden">
+    <div class="grid">
+      <div class="card full">
+        <h3>Вердикт <span id="demoBadge" class="demo-badge hidden">DEMO DATA</span></h3>
+        <div class="verdict-head">
+          <div class="gauge">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="48" fill="none" stroke="var(--card2)" stroke-width="10"/>
+              <circle id="gaugeArc" cx="55" cy="55" r="48" fill="none" stroke="var(--accent)" stroke-width="10"
+                      stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+            </svg>
+            <div class="num"><b id="vipScore">–</b><span>VIP score</span></div>
+          </div>
+          <div>
+            <div class="archetype" id="archetype">–</div>
+            <span id="riskPill" class="risk-pill">–</span>
+          </div>
+        </div>
+        <div class="summary" id="summary"></div>
+      </div>
+
+      <div class="card"><h3>Метрики кошелька</h3><div class="metrics" id="metrics"></div></div>
+      <div class="card"><h3>Риск-флаги</h3><div id="flags"></div></div>
+      <div class="card"><h3>Гемблинг-футпринт (share of wallet)</h3><div id="footprint"></div></div>
+      <div class="card"><h3>Топ-контрагенты</h3>
+        <table class="cp-table"><thead><tr><th>Адрес / лейбл</th><th>In</th><th>Out</th></tr></thead><tbody id="cps"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Прототип. Анализ последних ~1000 USDT-трансферов через публичный TronGrid API — данные не покидают ваш браузер.<br>
+    Точность гемблинг-футпринта зависит от базы разметки адресов казино и растёт по мере её пополнения.
+  </div>
+</div>
+
+<script>
+/* ============ CONFIG / LABELS ============ */
+const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const MAX_PAGES = 5;
+// Seed Labels DB — сюда добавлять реальные адреса казино (см. README)
+const LABELS = {
+  [USDT]: { name: "USDT (TRC-20) Contract", type: "contract" },
+};
+
+/* ============ PROFILER (клиентский) ============ */
+async function getJSON(url){
+  const r = await fetch(url, {headers:{accept:"application/json"}});
+  if(!r.ok) throw new Error("HTTP " + r.status + " от " + new URL(url).host);
+  return r.json();
+}
+
+async function fetchTransfers(address, onProgress){
+  let out = [], fingerprint = null;
+  for(let i = 0; i < MAX_PAGES; i++){
+    onProgress && onProgress(`Загружаю трансферы… страница ${i+1}/${MAX_PAGES}`);
+    let url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=200&contract_address=${USDT}`;
+    if(fingerprint) url += `&fingerprint=${encodeURIComponent(fingerprint)}`;
+    const body = await getJSON(url);
+    for(const t of (body.data || [])){
+      try{
+        const dec = parseInt(t.token_info?.decimals ?? 6);
+        out.push({ts: t.block_timestamp, frm: t.from, to: t.to, amount: Number(t.value) / 10**dec});
+      }catch(e){/* skip */}
+    }
+    fingerprint = body.meta?.fingerprint;
+    if(!fingerprint) break;
+    await new Promise(res => setTimeout(res, 300));
+  }
+  return out;
+}
+
+async function fetchTag(address){
+  try{
+    const body = await getJSON(`https://apilist.tronscanapi.com/api/accountv2?address=${address}`);
+    const tag = (body.publicTag || "").trim();
+    return tag || null;
+  }catch(e){ return null; }
+}
+
+function classifyTag(tag){
+  const low = tag.toLowerCase();
+  if(["casino","stake","bet","gamb","roobet","rollbit","bc.game","duel"].some(k => low.includes(k))) return "casino";
+  if(["binance","okx","bybit","huobi","htx","kucoin","gate","mexc","kraken","bitget","exchange"].some(k => low.includes(k))) return "exchange";
+  return null;
+}
+
+async function buildProfile(address, onProgress){
+  onProgress && onProgress("Запрашиваю аккаунт…");
+  const accBody = await getJSON(`https://api.trongrid.io/v1/accounts/${address}`);
+  const acc = (accBody.data || [])[0];
+  const now = Date.now();
+  const p = {
+    address, exists: true, wallet_age_days: 0, days_since_last_activity: 0,
+    trx_balance: 0, usdt_balance: 0, transfers_analyzed: 0,
+    total_in_usdt: 0, total_out_usdt: 0, avg_in_usdt: 0, max_in_usdt: 0,
+    funding_source: {}, counterparties: [], casino_flows: [], exchange_flow_usdt: 0, error: null,
+  };
+  if(!acc){ p.exists = false; p.error = "Адрес не найден в сети (нет активности)"; return p; }
+
+  p.trx_balance = (acc.balance || 0) / 1e6;
+  for(const tok of (acc.trc20 || [])) if(tok[USDT]) p.usdt_balance = Number(tok[USDT]) / 1e6;
+  const create = acc.create_time || now, lastOp = acc.latest_opration_time || create;
+  p.wallet_age_days = +((now - create) / 864e5).toFixed(1);
+  p.days_since_last_activity = +((now - lastOp) / 864e5).toFixed(1);
+
+  const transfers = await fetchTransfers(address, onProgress);
+  p.transfers_analyzed = transfers.length;
+
+  const flows = {}, incoming = [];
+  for(const t of transfers){
+    let cp;
+    if(t.to === address){
+      p.total_in_usdt += t.amount; p.max_in_usdt = Math.max(p.max_in_usdt, t.amount);
+      incoming.push(t); cp = t.frm;
+      (flows[cp] ??= {in:0,out:0,count:0}).in += t.amount;
+    } else if(t.frm === address){
+      p.total_out_usdt += t.amount; cp = t.to;
+      (flows[cp] ??= {in:0,out:0,count:0}).out += t.amount;
+    } else continue;
+    flows[cp].count++;
+  }
+
+  if(incoming.length){
+    p.avg_in_usdt = +(p.total_in_usdt / incoming.length).toFixed(2);
+    const first = incoming.reduce((a,b) => a.ts < b.ts ? a : b);
+    const lbl = LABELS[first.frm] || {};
+    p.funding_source = {address: first.frm, amount: +first.amount.toFixed(2), label: lbl.name || null, type: lbl.type || null};
+  }
+
+  const top = Object.entries(flows).sort((a,b) => (b[1].in + b[1].out) - (a[1].in + a[1].out)).slice(0, 12);
+  onProgress && onProgress("Обогащаю контрагентов лейблами…");
+  for(const [addr, f] of top){
+    const info = LABELS[addr] || {};
+    let name = info.name || null, typ = info.type || null;
+    if(!name){
+      const tag = await fetchTag(addr);
+      if(tag){ name = tag; typ = classifyTag(tag); }
+    }
+    const entry = {address: addr, name, type: typ, in_usdt: +f.in.toFixed(2), out_usdt: +f.out.toFixed(2), tx_count: f.count};
+    p.counterparties.push(entry);
+    if(typ === "casino") p.casino_flows.push(entry);
+    else if(typ === "exchange") p.exchange_flow_usdt += f.in + f.out;
+  }
+  p.total_in_usdt = +p.total_in_usdt.toFixed(2);
+  p.total_out_usdt = +p.total_out_usdt.toFixed(2);
+  p.exchange_flow_usdt = +p.exchange_flow_usdt.toFixed(2);
+  return p;
+}
+
+/* ============ SCORING (порт scoring.py) ============ */
+function volumeScore(x){ return x <= 0 ? 0 : Math.min(40, 8 * Math.log10(x / 10)); }
+function balanceScore(x){ return x <= 0 ? 0 : Math.min(25, 6 * Math.log10(x)); }
+function ticketScore(avg, max){
+  let s = 0;
+  if(avg >= 100) s += 5; if(avg >= 500) s += 4; if(avg >= 2000) s += 4;
+  if(max >= 5000) s += 4; if(max >= 25000) s += 3;
+  return s;
+}
+function maturityScore(age, txs){
+  let s = 0;
+  if(age >= 30) s += 3; if(age >= 180) s += 4; if(age >= 720) s += 3;
+  if(txs >= 50) s += 3; if(txs >= 300) s += 2;
+  return s;
+}
+
+function computeVerdict(p){
+  if(!p.exists){
+    return {vip_score: 0, risk_level: "high",
+      risk_flags: [{flag: "not_found", text: "Адрес без активности — вероятно, свежесозданный кошелёк"}],
+      archetype: "Неизвестный", casino_footprint: [],
+      summary: "Кошелёк не найден в сети. Первый депозит с такого адреса — максимальная осторожность с бонусами."};
+  }
+  const age = p.wallet_age_days, txs = p.transfers_analyzed;
+  const vip = Math.round(Math.min(100,
+    volumeScore(p.total_in_usdt) + balanceScore(p.usdt_balance) +
+    ticketScore(p.avg_in_usdt, p.max_in_usdt) + maturityScore(age, txs)));
+
+  const flags = [];
+  if(age < 7 && txs <= 3) flags.push({flag:"fresh_wallet", text:`Свежий кошелёк (${Math.round(age)} дн., ${txs} транзакций)`});
+  if((p.funding_source||{}).type === "mixer") flags.push({flag:"mixer_funding", text:"Первичное пополнение с миксера"});
+  if(p.total_in_usdt > 0 && p.total_out_usdt / Math.max(p.total_in_usdt, 1) > 0.92 && age < 30)
+    flags.push({flag:"pass_through", text:"Транзитный паттерн: почти всё входящее сразу уходит"});
+  const nCas = (p.casino_flows||[]).length;
+  if(nCas >= 3 && p.avg_in_usdt < 150)
+    flags.push({flag:"bonus_hunter", text:`Мелкие депозиты в ${nCas}+ казино — паттерн бонус-хантера`});
+  if(p.exchange_flow_usdt > 0)
+    flags.push({flag:"cex_linked", text:"Есть поток с CEX — кошелёк связан с KYC-биржей (позитивный сигнал)", positive:true});
+
+  const neg = flags.filter(f => !f.positive);
+  const risk = neg.length >= 2 ? "high" : (neg.length ? "medium" : "low");
+
+  let archetype;
+  if(vip >= 70) archetype = "Кит";
+  else if(vip >= 45) archetype = "Перспективный игрок";
+  else if(flags.some(f => f.flag === "bonus_hunter")) archetype = "Вероятный бонус-хантер";
+  else if(age < 7) archetype = "Новый кошелёк";
+  else archetype = "Обычный игрок";
+
+  const casTotal = (p.casino_flows||[]).reduce((s,c) => s + c.in_usdt + c.out_usdt, 0);
+  const footprint = (p.casino_flows||[]).map(c => ({
+    name: c.name || c.address.slice(0,10) + "…",
+    flow_usdt: +(c.in_usdt + c.out_usdt).toFixed(2),
+    share_pct: casTotal ? +((100 * (c.in_usdt + c.out_usdt)) / casTotal).toFixed(1) : 0,
+  })).sort((a,b) => b.flow_usdt - a.flow_usdt);
+
+  const usd0 = n => "$" + Math.round(n).toLocaleString("en-US");
+  const bits = [`Кошельку ${Math.round(age)} дн., оборот ${usd0(p.total_in_usdt)} in / ${usd0(p.total_out_usdt)} out, баланс ${usd0(p.usdt_balance)} USDT.`];
+  if(nCas) bits.push(`Играет в ${nCas} размеченных казино, больше всего — ${footprint[0].name} (${Math.round(footprint[0].share_pct)}% гемблинг-флоу).`);
+  if(vip >= 70) bits.push("Рекомендация: передать VIP-менеджеру сразу.");
+  else if(flags.some(f => f.flag === "bonus_hunter")) bits.push("Рекомендация: придержать бонус до ручной проверки.");
+  else if(risk === "high") bits.push("Рекомендация: осторожно с welcome-оффером.");
+  else bits.push("Рекомендация: стандартный онбординг.");
+
+  return {vip_score: vip, risk_level: risk, risk_flags: flags, archetype, casino_footprint: footprint, summary: bits.join(" ")};
+}
+
+/* ============ DEMO DATA ============ */
+const DEMO = {
+  "demo:whale": {
+    address:"TWhaleDemo", exists:true, wallet_age_days:812.4, days_since_last_activity:0.3,
+    trx_balance:4210, usdt_balance:342500, transfers_analyzed:964,
+    total_in_usdt:1284300, total_out_usdt:1102850, avg_in_usdt:4830, max_in_usdt:85000,
+    funding_source:{address:"TBinanceHot", amount:25000, label:"Binance (hot)", type:"exchange"},
+    counterparties:[
+      {address:"TStakeDemoXXXXXXXXXXXXXXXXXXXXXXX", name:"Stake.com", type:"casino", in_usdt:96000, out_usdt:188000, tx_count:214},
+      {address:"TRoobetDemoXXXXXXXXXXXXXXXXXXXXXX", name:"Roobet", type:"casino", in_usdt:31000, out_usdt:92000, tx_count:88},
+      {address:"TBCGameDemoXXXXXXXXXXXXXXXXXXXXXX", name:"BC.Game", type:"casino", in_usdt:12000, out_usdt:46500, tx_count:41},
+      {address:"TBinanceHotDemoXXXXXXXXXXXXXXXXXX", name:"Binance (hot)", type:"exchange", in_usdt:610000, out_usdt:145000, tx_count:96},
+    ],
+    casino_flows:[
+      {address:"TStakeDemo", name:"Stake.com", type:"casino", in_usdt:96000, out_usdt:188000, tx_count:214},
+      {address:"TRoobetDemo", name:"Roobet", type:"casino", in_usdt:31000, out_usdt:92000, tx_count:88},
+      {address:"TBCGameDemo", name:"BC.Game", type:"casino", in_usdt:12000, out_usdt:46500, tx_count:41},
+    ],
+    exchange_flow_usdt:755000, error:null,
+  },
+  "demo:hunter": {
+    address:"THunterDemo", exists:true, wallet_age_days:19.2, days_since_last_activity:1.1,
+    trx_balance:12, usdt_balance:84, transfers_analyzed:57,
+    total_in_usdt:3240, total_out_usdt:3105, avg_in_usdt:92, max_in_usdt:400,
+    funding_source:{address:"TUnknown", amount:120, label:null, type:null},
+    counterparties:[
+      {address:"TCasinoA1", name:"BC.Game", type:"casino", in_usdt:310, out_usdt:640, tx_count:12},
+      {address:"TCasinoB2", name:"Vave", type:"casino", in_usdt:280, out_usdt:590, tx_count:10},
+      {address:"TCasinoC3", name:"Roobet", type:"casino", in_usdt:240, out_usdt:505, tx_count:9},
+      {address:"TCasinoD4", name:"Duelbits", type:"casino", in_usdt:195, out_usdt:430, tx_count:8},
+    ],
+    casino_flows:[
+      {address:"TCasinoA1", name:"BC.Game", type:"casino", in_usdt:310, out_usdt:640, tx_count:12},
+      {address:"TCasinoB2", name:"Vave", type:"casino", in_usdt:280, out_usdt:590, tx_count:10},
+      {address:"TCasinoC3", name:"Roobet", type:"casino", in_usdt:240, out_usdt:505, tx_count:9},
+      {address:"TCasinoD4", name:"Duelbits", type:"casino", in_usdt:195, out_usdt:430, tx_count:8},
+    ],
+    exchange_flow_usdt:0, error:null,
+  },
+  "demo:regular": {
+    address:"TRegularDemo", exists:true, wallet_age_days:231, days_since_last_activity:4,
+    trx_balance:260, usdt_balance:1150, transfers_analyzed:84,
+    total_in_usdt:9400, total_out_usdt:8100, avg_in_usdt:215, max_in_usdt:1200,
+    funding_source:{address:"TOKXHot", amount:500, label:"OKX (hot)", type:"exchange"},
+    counterparties:[
+      {address:"TCasinoX9", name:"Stake.com", type:"casino", in_usdt:1900, out_usdt:3400, tx_count:44},
+      {address:"TOKXHotDemoXXXXXXXXXXXXXXXXXXXXXX", name:"OKX (hot)", type:"exchange", in_usdt:6100, out_usdt:2300, tx_count:21},
+    ],
+    casino_flows:[
+      {address:"TCasinoX9", name:"Stake.com", type:"casino", in_usdt:1900, out_usdt:3400, tx_count:44},
+    ],
+    exchange_flow_usdt:8400, error:null,
+  },
+};
+
+/* ============ UI ============ */
+if(typeof document !== "undefined"){
+  const $ = id => document.getElementById(id);
+  const usd = n => "$" + Math.round(n).toLocaleString("en-US");
+  const TRON_RE = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+  const cache = {};
+
+  async function run(){
+    const addr = $("addr").value.trim();
+    if(!addr) return;
+    $("err").classList.add("hidden");
+    $("go").disabled = true;
+
+    try{
+      let profile, demo = false;
+      if(DEMO[addr]){ profile = DEMO[addr]; demo = true; }
+      else if(!TRON_RE.test(addr)) throw new Error("Некорректный TRON-адрес (или используйте demo:whale / demo:hunter / demo:regular)");
+      else if(cache[addr]) profile = cache[addr];
+      else {
+        $("progress").classList.remove("hidden");
+        profile = await buildProfile(addr, msg => $("progress").textContent = msg);
+        cache[addr] = profile;
+      }
+      render(profile, computeVerdict(profile), demo);
+    }catch(e){
+      $("result").classList.add("hidden");
+      $("err").textContent = e.message;
+      $("err").classList.remove("hidden");
+    }finally{
+      $("go").disabled = false;
+      $("progress").classList.add("hidden");
+    }
+  }
+
+  function render(p, v, demo){
+    $("result").classList.remove("hidden");
+    $("demoBadge").classList.toggle("hidden", !demo);
+
+    const score = v.vip_score, arc = $("gaugeArc");
+    arc.style.stroke = score >= 70 ? "var(--green)" : score >= 45 ? "var(--accent)" : "var(--muted)";
+    arc.style.strokeDashoffset = 301.6 * (1 - score / 100);
+    $("vipScore").textContent = score;
+    $("archetype").textContent = v.archetype;
+
+    const pill = $("riskPill");
+    pill.className = "risk-pill risk-" + v.risk_level;
+    pill.textContent = "Риск: " + ({low:"низкий", medium:"средний", high:"высокий"})[v.risk_level];
+    $("summary").textContent = v.summary;
+
+    $("metrics").innerHTML = [
+      [usd(p.total_in_usdt), "входящий объём"], [usd(p.usdt_balance), "баланс USDT"],
+      [usd(p.avg_in_usdt), "средний депозит"], [usd(p.max_in_usdt), "макс. депозит"],
+      [Math.round(p.wallet_age_days) + " дн.", "возраст кошелька"], [p.transfers_analyzed, "трансферов изучено"],
+    ].map(([val, l]) => `<div class="metric"><div class="v">${val}</div><div class="l">${l}</div></div>`).join("");
+
+    const fl = v.risk_flags || [];
+    $("flags").innerHTML = fl.length
+      ? fl.map(f => `<div class="flag"><span class="dot" style="background:${f.positive ? "var(--green)" : "var(--red)"}"></span>${f.text}</div>`).join("")
+      : '<div style="color:var(--muted);font-size:13.5px">Флагов нет — чистый профиль</div>';
+
+    const fp = v.casino_footprint || [];
+    $("footprint").innerHTML = fp.length
+      ? fp.map(c => `<div class="bar-row"><div class="top"><span>${c.name}</span><span>${usd(c.flow_usdt)} · ${c.share_pct}%</span></div><div class="bar"><i style="width:${c.share_pct}%"></i></div></div>`).join("")
+      : '<div style="color:var(--muted);font-size:13.5px">Взаимодействий с размеченными казино не найдено.<br><br>Это нормально на старте: точность футпринта растёт по мере пополнения базы разметки адресов казино.</div>';
+
+    $("cps").innerHTML = (p.counterparties || []).slice(0, 8).map(c => `
+      <tr><td>${c.name ? c.name + " " : ""}${c.type ? `<span class="tag tag-${c.type}">${c.type}</span>` : ""}<div class="mono">${c.address.slice(0,14)}…</div></td>
+      <td>${usd(c.in_usdt)}</td><td>${usd(c.out_usdt)}</td></tr>`).join("");
+  }
+
+  $("go").addEventListener("click", run);
+  $("addr").addEventListener("keydown", e => { if(e.key === "Enter") run(); });
+  document.querySelectorAll("[data-demo]").forEach(a =>
+    a.addEventListener("click", () => { $("addr").value = a.dataset.demo; run(); }));
+}
+
+/* для node-тестов */
+if(typeof module !== "undefined") module.exports = {computeVerdict, DEMO};
+</script>
+</body>
+</html>
