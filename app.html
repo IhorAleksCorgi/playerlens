@@ -1,35 +1,43 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PlayerLens — Wallet Verdict</title>
-<meta name="description" content="Вердикт по кошельку игрока за секунды — VIP score, риск-флаги, гемблинг-футпринт. TRON / USDT.">
+<meta name="description" content="Player wallet verdict in seconds — VIP score, risk flags, gambling footprint. TRON / USDT.">
 <style>
   :root{
-    --bg:#0b0e14; --card:#131824; --card2:#1a2130; --text:#e8ecf4; --muted:#8b94a7;
-    --accent:#4f8cff; --green:#2ecc8f; --yellow:#f5b942; --red:#ff5c6c; --border:#232c40;
+    --bg:#08070f; --card:#12111f; --card2:#1a1830; --text:#eef0fa; --muted:#8f93ad;
+    --accent:#7c5cff; --accent2:#22d3ee; --green:#2ee6a8; --yellow:#fbbf24; --red:#ff5c7a; --border:#26243d;
+    --grad:linear-gradient(90deg,#7c5cff,#22d3ee);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;padding:40px 20px}
-  .wrap{max-width:860px;margin:0 auto}
-  .logo{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
-  .logo span{color:var(--accent)}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;padding:40px 20px;position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;top:-30%;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse,rgba(124,92,255,.18),transparent 65%);pointer-events:none}
+  body::after{content:"";position:fixed;bottom:-40%;right:-10%;width:700px;height:600px;background:radial-gradient(ellipse,rgba(34,211,238,.10),transparent 65%);pointer-events:none}
+  .wrap{max-width:860px;margin:0 auto;position:relative;z-index:1}
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .logo{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .logo span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .back{font-size:13px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--text)}
   .tagline{color:var(--muted);font-size:14px;margin-bottom:28px}
   .searchbar{display:flex;gap:10px;margin-bottom:14px}
-  input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-size:15px;font-family:monospace}
-  input:focus{outline:none;border-color:var(--accent)}
-  button{background:var(--accent);border:none;border-radius:10px;padding:0 26px;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-size:15px;font-family:monospace;transition:.15s}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,.18)}
+  button{background:var(--grad);border:none;border-radius:12px;padding:0 26px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+  button:hover{filter:brightness(1.12)}
   button:disabled{opacity:.5;cursor:wait}
   .demos{color:var(--muted);font-size:13px;margin-bottom:30px}
-  .demos a{color:var(--accent);cursor:pointer;text-decoration:none;margin-right:10px}
+  .demos a{color:var(--accent2);cursor:pointer;text-decoration:none;margin-right:10px}
   .hidden{display:none}
-  .error{background:#2a1520;border:1px solid var(--red);border-radius:10px;padding:14px 18px;color:var(--red);margin-bottom:20px}
-  .progress{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .error{background:#2a1520;border:1px solid var(--red);border-radius:12px;padding:14px 18px;color:var(--red);margin-bottom:20px}
+  .progress{color:var(--accent2);font-size:13px;margin-bottom:20px}
   .demo-badge{display:inline-block;background:#2a2410;color:var(--yellow);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:10px;vertical-align:middle}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
-  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:14px}
+  .verdict-card{background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(120deg,rgba(124,92,255,.65),rgba(34,211,238,.45)) border-box;border:1px solid transparent}
   .verdict-head{display:flex;align-items:center;gap:26px}
   .gauge{position:relative;width:110px;height:110px;flex-shrink:0}
   .gauge svg{transform:rotate(-90deg)}
@@ -38,10 +46,10 @@
   .gauge .num span{font-size:10px;color:var(--muted);text-transform:uppercase}
   .archetype{font-size:24px;font-weight:800;margin-bottom:6px}
   .risk-pill{display:inline-block;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700}
-  .risk-low{background:#10281f;color:var(--green)} .risk-medium{background:#2a2410;color:var(--yellow)} .risk-high{background:#2a1520;color:var(--red)}
-  .summary{background:var(--card2);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.6;margin-top:16px;color:#c8d0e0}
+  .risk-low{background:#0e2b21;color:var(--green)} .risk-medium{background:#2a2410;color:var(--yellow)} .risk-high{background:#2a1520;color:var(--red)}
+  .summary{background:var(--card2);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.6;margin-top:16px;color:#cdd2e8}
   .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .metric{background:var(--card2);border-radius:10px;padding:12px 14px}
+  .metric{background:var(--card2);border-radius:12px;padding:12px 14px}
   .metric .v{font-size:17px;font-weight:700} .metric .l{font-size:11px;color:var(--muted);margin-top:2px}
   .flag{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;align-items:baseline}
   .flag:last-child{border:none}
@@ -49,13 +57,13 @@
   .bar-row{margin-bottom:12px}
   .bar-row .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
   .bar{height:8px;background:var(--card2);border-radius:6px;overflow:hidden}
-  .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
+  .bar i{display:block;height:100%;background:var(--grad);border-radius:6px}
   .cp-table{width:100%;border-collapse:collapse;font-size:13px}
   .cp-table th{color:var(--muted);text-align:left;font-weight:500;padding:6px 8px;font-size:11px;text-transform:uppercase}
   .cp-table td{padding:8px;border-top:1px solid var(--border)}
   .cp-table .mono{font-family:monospace;font-size:12px;color:var(--muted)}
   .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase}
-  .tag-casino{background:#241534;color:#c084fc} .tag-exchange{background:#0f2333;color:#38bdf8} .tag-contract{background:#1f2937;color:#9ca3af}
+  .tag-casino{background:#2b1640;color:#c084fc} .tag-exchange{background:#0f2a38;color:#38bdf8} .tag-contract{background:#1f2937;color:#9ca3af}
   .full{grid-column:1 / -1}
   .footer{color:var(--muted);font-size:12px;margin-top:30px;line-height:1.6}
   @media(max-width:700px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
@@ -63,27 +71,33 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="logo">Player<span>Lens</span></div>
-  <div class="tagline">Вердикт по кошельку игрока за секунды — VIP, риск, гемблинг-футпринт. TRON / USDT.</div>
+  <div class="topbar">
+    <div class="logo">Player<span>Lens</span></div>
+    <a class="back" href="index.html">← Back to site</a>
+  </div>
+  <div class="tagline">Player wallet verdict in seconds — VIP, risk, gambling footprint. TRON / USDT.</div>
 
   <div class="searchbar">
-    <input id="addr" placeholder="TRON-адрес игрока (T...)" spellcheck="false">
-    <button id="go">Вердикт</button>
+    <input id="addr" placeholder="Player's TRON address (T...)" spellcheck="false">
+    <button id="go">Get verdict</button>
   </div>
-  <div class="demos">Демо: <a data-demo="demo:whale">кит</a> <a data-demo="demo:hunter">бонус-хантер</a> <a data-demo="demo:regular">обычный игрок</a></div>
+  <div class="demos">Demo: <a data-demo="demo:whale">whale</a> <a data-demo="demo:hunter">bonus hunter</a> <a data-demo="demo:regular">regular player</a></div>
 
   <div id="progress" class="progress hidden"></div>
   <div id="err" class="error hidden"></div>
 
   <div id="result" class="hidden">
     <div class="grid">
-      <div class="card full">
-        <h3>Вердикт <span id="demoBadge" class="demo-badge hidden">DEMO DATA</span></h3>
+      <div class="card verdict-card full">
+        <h3>Verdict <span id="demoBadge" class="demo-badge hidden">DEMO DATA</span></h3>
         <div class="verdict-head">
           <div class="gauge">
             <svg width="110" height="110" viewBox="0 0 110 110">
+              <defs><linearGradient id="gradArc" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7c5cff"/><stop offset="100%" stop-color="#22d3ee"/>
+              </linearGradient></defs>
               <circle cx="55" cy="55" r="48" fill="none" stroke="var(--card2)" stroke-width="10"/>
-              <circle id="gaugeArc" cx="55" cy="55" r="48" fill="none" stroke="var(--accent)" stroke-width="10"
+              <circle id="gaugeArc" cx="55" cy="55" r="48" fill="none" stroke="url(#gradArc)" stroke-width="10"
                       stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
             </svg>
             <div class="num"><b id="vipScore">–</b><span>VIP score</span></div>
@@ -96,18 +110,18 @@
         <div class="summary" id="summary"></div>
       </div>
 
-      <div class="card"><h3>Метрики кошелька</h3><div class="metrics" id="metrics"></div></div>
-      <div class="card"><h3>Риск-флаги</h3><div id="flags"></div></div>
-      <div class="card"><h3>Гемблинг-футпринт (share of wallet)</h3><div id="footprint"></div></div>
-      <div class="card"><h3>Топ-контрагенты</h3>
-        <table class="cp-table"><thead><tr><th>Адрес / лейбл</th><th>In</th><th>Out</th></tr></thead><tbody id="cps"></tbody></table>
+      <div class="card"><h3>Wallet metrics</h3><div class="metrics" id="metrics"></div></div>
+      <div class="card"><h3>Risk flags</h3><div id="flags"></div></div>
+      <div class="card"><h3>Gambling footprint (share of wallet)</h3><div id="footprint"></div></div>
+      <div class="card"><h3>Top counterparties</h3>
+        <table class="cp-table"><thead><tr><th>Address / label</th><th>In</th><th>Out</th></tr></thead><tbody id="cps"></tbody></table>
       </div>
     </div>
   </div>
 
   <div class="footer">
-    Прототип. Анализ последних ~1000 USDT-трансферов через публичный TronGrid API — данные не покидают ваш браузер.<br>
-    Точность гемблинг-футпринта зависит от базы разметки адресов казино и растёт по мере её пополнения.
+    Prototype. Analyzes the last ~1,000 USDT transfers via the public TronGrid API — data never leaves your browser.<br>
+    Footprint accuracy depends on the casino address label database and improves as it grows.
   </div>
 </div>
 
@@ -115,22 +129,22 @@
 /* ============ CONFIG / LABELS ============ */
 const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const MAX_PAGES = 5;
-// Seed Labels DB — сюда добавлять реальные адреса казино (см. README)
+// Seed Labels DB — add real casino addresses here (see README)
 const LABELS = {
   [USDT]: { name: "USDT (TRC-20) Contract", type: "contract" },
 };
 
-/* ============ PROFILER (клиентский) ============ */
+/* ============ PROFILER (client-side) ============ */
 async function getJSON(url){
   const r = await fetch(url, {headers:{accept:"application/json"}});
-  if(!r.ok) throw new Error("HTTP " + r.status + " от " + new URL(url).host);
+  if(!r.ok) throw new Error("HTTP " + r.status + " from " + new URL(url).host);
   return r.json();
 }
 
 async function fetchTransfers(address, onProgress){
   let out = [], fingerprint = null;
   for(let i = 0; i < MAX_PAGES; i++){
-    onProgress && onProgress(`Загружаю трансферы… страница ${i+1}/${MAX_PAGES}`);
+    onProgress && onProgress(`Loading transfers… page ${i+1}/${MAX_PAGES}`);
     let url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=200&contract_address=${USDT}`;
     if(fingerprint) url += `&fingerprint=${encodeURIComponent(fingerprint)}`;
     const body = await getJSON(url);
@@ -163,7 +177,7 @@ function classifyTag(tag){
 }
 
 async function buildProfile(address, onProgress){
-  onProgress && onProgress("Запрашиваю аккаунт…");
+  onProgress && onProgress("Fetching account…");
   const accBody = await getJSON(`https://api.trongrid.io/v1/accounts/${address}`);
   const acc = (accBody.data || [])[0];
   const now = Date.now();
@@ -173,7 +187,7 @@ async function buildProfile(address, onProgress){
     total_in_usdt: 0, total_out_usdt: 0, avg_in_usdt: 0, max_in_usdt: 0,
     funding_source: {}, counterparties: [], casino_flows: [], exchange_flow_usdt: 0, error: null,
   };
-  if(!acc){ p.exists = false; p.error = "Адрес не найден в сети (нет активности)"; return p; }
+  if(!acc){ p.exists = false; p.error = "Address not found on-chain (no activity)"; return p; }
 
   p.trx_balance = (acc.balance || 0) / 1e6;
   for(const tok of (acc.trc20 || [])) if(tok[USDT]) p.usdt_balance = Number(tok[USDT]) / 1e6;
@@ -206,7 +220,7 @@ async function buildProfile(address, onProgress){
   }
 
   const top = Object.entries(flows).sort((a,b) => (b[1].in + b[1].out) - (a[1].in + a[1].out)).slice(0, 12);
-  onProgress && onProgress("Обогащаю контрагентов лейблами…");
+  onProgress && onProgress("Enriching counterparties with labels…");
   for(const [addr, f] of top){
     const info = LABELS[addr] || {};
     let name = info.name || null, typ = info.type || null;
@@ -225,7 +239,7 @@ async function buildProfile(address, onProgress){
   return p;
 }
 
-/* ============ SCORING (порт scoring.py) ============ */
+/* ============ SCORING ============ */
 function volumeScore(x){ return x <= 0 ? 0 : Math.min(40, 8 * Math.log10(x / 10)); }
 function balanceScore(x){ return x <= 0 ? 0 : Math.min(25, 6 * Math.log10(x)); }
 function ticketScore(avg, max){
@@ -244,9 +258,9 @@ function maturityScore(age, txs){
 function computeVerdict(p){
   if(!p.exists){
     return {vip_score: 0, risk_level: "high",
-      risk_flags: [{flag: "not_found", text: "Адрес без активности — вероятно, свежесозданный кошелёк"}],
-      archetype: "Неизвестный", casino_footprint: [],
-      summary: "Кошелёк не найден в сети. Первый депозит с такого адреса — максимальная осторожность с бонусами."};
+      risk_flags: [{flag: "not_found", text: "No on-chain activity — likely a freshly created wallet"}],
+      archetype: "Unknown", casino_footprint: [],
+      summary: "Wallet not found on-chain. First deposit from an address like this — maximum caution with bonuses."};
   }
   const age = p.wallet_age_days, txs = p.transfers_analyzed;
   const vip = Math.round(Math.min(100,
@@ -254,25 +268,25 @@ function computeVerdict(p){
     ticketScore(p.avg_in_usdt, p.max_in_usdt) + maturityScore(age, txs)));
 
   const flags = [];
-  if(age < 7 && txs <= 3) flags.push({flag:"fresh_wallet", text:`Свежий кошелёк (${Math.round(age)} дн., ${txs} транзакций)`});
-  if((p.funding_source||{}).type === "mixer") flags.push({flag:"mixer_funding", text:"Первичное пополнение с миксера"});
+  if(age < 7 && txs <= 3) flags.push({flag:"fresh_wallet", text:`Fresh wallet (${Math.round(age)} days old, ${txs} transactions)`});
+  if((p.funding_source||{}).type === "mixer") flags.push({flag:"mixer_funding", text:"Initially funded from a mixer"});
   if(p.total_in_usdt > 0 && p.total_out_usdt / Math.max(p.total_in_usdt, 1) > 0.92 && age < 30)
-    flags.push({flag:"pass_through", text:"Транзитный паттерн: почти всё входящее сразу уходит"});
+    flags.push({flag:"pass_through", text:"Pass-through pattern: almost everything incoming leaves immediately"});
   const nCas = (p.casino_flows||[]).length;
   if(nCas >= 3 && p.avg_in_usdt < 150)
-    flags.push({flag:"bonus_hunter", text:`Мелкие депозиты в ${nCas}+ казино — паттерн бонус-хантера`});
+    flags.push({flag:"bonus_hunter", text:`Small deposits across ${nCas}+ casinos — bonus hunter pattern`});
   if(p.exchange_flow_usdt > 0)
-    flags.push({flag:"cex_linked", text:"Есть поток с CEX — кошелёк связан с KYC-биржей (позитивный сигнал)", positive:true});
+    flags.push({flag:"cex_linked", text:"CEX flow detected — wallet linked to a KYC exchange (positive signal)", positive:true});
 
   const neg = flags.filter(f => !f.positive);
   const risk = neg.length >= 2 ? "high" : (neg.length ? "medium" : "low");
 
   let archetype;
-  if(vip >= 70) archetype = "Кит";
-  else if(vip >= 45) archetype = "Перспективный игрок";
-  else if(flags.some(f => f.flag === "bonus_hunter")) archetype = "Вероятный бонус-хантер";
-  else if(age < 7) archetype = "Новый кошелёк";
-  else archetype = "Обычный игрок";
+  if(vip >= 70) archetype = "Whale";
+  else if(vip >= 45) archetype = "Promising player";
+  else if(flags.some(f => f.flag === "bonus_hunter")) archetype = "Likely bonus hunter";
+  else if(age < 7) archetype = "New wallet";
+  else archetype = "Regular player";
 
   const casTotal = (p.casino_flows||[]).reduce((s,c) => s + c.in_usdt + c.out_usdt, 0);
   const footprint = (p.casino_flows||[]).map(c => ({
@@ -282,12 +296,12 @@ function computeVerdict(p){
   })).sort((a,b) => b.flow_usdt - a.flow_usdt);
 
   const usd0 = n => "$" + Math.round(n).toLocaleString("en-US");
-  const bits = [`Кошельку ${Math.round(age)} дн., оборот ${usd0(p.total_in_usdt)} in / ${usd0(p.total_out_usdt)} out, баланс ${usd0(p.usdt_balance)} USDT.`];
-  if(nCas) bits.push(`Играет в ${nCas} размеченных казино, больше всего — ${footprint[0].name} (${Math.round(footprint[0].share_pct)}% гемблинг-флоу).`);
-  if(vip >= 70) bits.push("Рекомендация: передать VIP-менеджеру сразу.");
-  else if(flags.some(f => f.flag === "bonus_hunter")) bits.push("Рекомендация: придержать бонус до ручной проверки.");
-  else if(risk === "high") bits.push("Рекомендация: осторожно с welcome-оффером.");
-  else bits.push("Рекомендация: стандартный онбординг.");
+  const bits = [`Wallet is ${Math.round(age)} days old, volume ${usd0(p.total_in_usdt)} in / ${usd0(p.total_out_usdt)} out, balance ${usd0(p.usdt_balance)} USDT.`];
+  if(nCas) bits.push(`Plays at ${nCas} labeled casino${nCas > 1 ? "s" : ""}, mostly ${footprint[0].name} (${Math.round(footprint[0].share_pct)}% of gambling flow).`);
+  if(vip >= 70) bits.push("Recommendation: hand off to a VIP manager immediately.");
+  else if(flags.some(f => f.flag === "bonus_hunter")) bits.push("Recommendation: hold the bonus until manual review.");
+  else if(risk === "high") bits.push("Recommendation: be careful with the welcome offer.");
+  else bits.push("Recommendation: standard onboarding.");
 
   return {vip_score: vip, risk_level: risk, risk_flags: flags, archetype, casino_footprint: footprint, summary: bits.join(" ")};
 }
@@ -363,7 +377,7 @@ if(typeof document !== "undefined"){
     try{
       let profile, demo = false;
       if(DEMO[addr]){ profile = DEMO[addr]; demo = true; }
-      else if(!TRON_RE.test(addr)) throw new Error("Некорректный TRON-адрес (или используйте demo:whale / demo:hunter / demo:regular)");
+      else if(!TRON_RE.test(addr)) throw new Error("Invalid TRON address (or use demo:whale / demo:hunter / demo:regular)");
       else if(cache[addr]) profile = cache[addr];
       else {
         $("progress").classList.remove("hidden");
@@ -386,31 +400,30 @@ if(typeof document !== "undefined"){
     $("demoBadge").classList.toggle("hidden", !demo);
 
     const score = v.vip_score, arc = $("gaugeArc");
-    arc.style.stroke = score >= 70 ? "var(--green)" : score >= 45 ? "var(--accent)" : "var(--muted)";
     arc.style.strokeDashoffset = 301.6 * (1 - score / 100);
     $("vipScore").textContent = score;
     $("archetype").textContent = v.archetype;
 
     const pill = $("riskPill");
     pill.className = "risk-pill risk-" + v.risk_level;
-    pill.textContent = "Риск: " + ({low:"низкий", medium:"средний", high:"высокий"})[v.risk_level];
+    pill.textContent = "Risk: " + v.risk_level;
     $("summary").textContent = v.summary;
 
     $("metrics").innerHTML = [
-      [usd(p.total_in_usdt), "входящий объём"], [usd(p.usdt_balance), "баланс USDT"],
-      [usd(p.avg_in_usdt), "средний депозит"], [usd(p.max_in_usdt), "макс. депозит"],
-      [Math.round(p.wallet_age_days) + " дн.", "возраст кошелька"], [p.transfers_analyzed, "трансферов изучено"],
+      [usd(p.total_in_usdt), "incoming volume"], [usd(p.usdt_balance), "USDT balance"],
+      [usd(p.avg_in_usdt), "avg deposit"], [usd(p.max_in_usdt), "max deposit"],
+      [Math.round(p.wallet_age_days) + " days", "wallet age"], [p.transfers_analyzed, "transfers analyzed"],
     ].map(([val, l]) => `<div class="metric"><div class="v">${val}</div><div class="l">${l}</div></div>`).join("");
 
     const fl = v.risk_flags || [];
     $("flags").innerHTML = fl.length
       ? fl.map(f => `<div class="flag"><span class="dot" style="background:${f.positive ? "var(--green)" : "var(--red)"}"></span>${f.text}</div>`).join("")
-      : '<div style="color:var(--muted);font-size:13.5px">Флагов нет — чистый профиль</div>';
+      : '<div style="color:var(--muted);font-size:13.5px">No flags — clean profile</div>';
 
     const fp = v.casino_footprint || [];
     $("footprint").innerHTML = fp.length
       ? fp.map(c => `<div class="bar-row"><div class="top"><span>${c.name}</span><span>${usd(c.flow_usdt)} · ${c.share_pct}%</span></div><div class="bar"><i style="width:${c.share_pct}%"></i></div></div>`).join("")
-      : '<div style="color:var(--muted);font-size:13.5px">Взаимодействий с размеченными казино не найдено.<br><br>Это нормально на старте: точность футпринта растёт по мере пополнения базы разметки адресов казино.</div>';
+      : '<div style="color:var(--muted);font-size:13.5px">No interactions with labeled casinos found.<br><br>This is normal early on: footprint accuracy grows as the casino label database expands.</div>';
 
     $("cps").innerHTML = (p.counterparties || []).slice(0, 8).map(c => `
       <tr><td>${c.name ? c.name + " " : ""}${c.type ? `<span class="tag tag-${c.type}">${c.type}</span>` : ""}<div class="mono">${c.address.slice(0,14)}…</div></td>
@@ -423,7 +436,7 @@ if(typeof document !== "undefined"){
     a.addEventListener("click", () => { $("addr").value = a.dataset.demo; run(); }));
 }
 
-/* для node-тестов */
+/* for node tests */
 if(typeof module !== "undefined") module.exports = {computeVerdict, DEMO};
 </script>
 </body>
