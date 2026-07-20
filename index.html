@@ -66,7 +66,7 @@
   .bullets{margin-top:24px;display:flex;flex-direction:column;gap:12px}
   .bullets li{list-style:none;display:flex;gap:12px;font-size:15.5px;align-items:baseline}
   .bullets li::before{content:"";width:8px;height:8px;border-radius:50%;flex-shrink:0;position:relative;top:-1px}
-  .b-vip li::before{background:#c084fc}.b-risk li::before{background:var(--red)}.b-foot li::before{background:var(--cyan)}
+  .b-vip li::before{background:#c084fc}.b-risk li::before{background:var(--red)}.b-foot li::before{background:var(--cyan)}.b-ent li::before{background:var(--yellow)}
 
   /* MOCK CARDS */
   .mock{position:relative;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(140deg,rgba(124,92,255,.6),rgba(244,114,182,.35),rgba(34,211,238,.5)) border-box;border:1px solid transparent;border-radius:20px;padding:24px;box-shadow:0 30px 90px rgba(124,92,255,.12)}
@@ -122,7 +122,7 @@
 <nav><div class="wrap nav-in">
   <div class="logo">Player<span>Lens</span></div>
   <div class="nav-links">
-    <a href="#vip">VIP Detection</a><a href="#risk">Fraud Prevention</a><a href="#footprint">Footprint</a><a href="#how">How It Works</a>
+    <a href="#vip">VIP Detection</a><a href="#risk">Fraud Prevention</a><a href="#footprint">Footprint</a><a href="#entity">Entity Graph</a><a href="#how">How It Works</a>
   </div>
   <div class="nav-cta"><a class="btn btn-ghost" href="mailto:hello@playerlens.io">Contact</a><a class="btn btn-primary" href="app.html">Live Demo</a></div>
 </div></nav>
@@ -218,7 +218,35 @@
   </div>
 </div></section>
 
-<section id="how" style="background:var(--bg2)">
+<section id="entity" style="background:var(--bg2)">
+  <div class="orb" style="width:400px;height:400px;background:#fbbf24;top:-120px;left:-180px;opacity:.10"></div>
+  <div class="wrap split rev">
+  <div class="txt">
+    <div class="chip" style="color:var(--yellow);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)">🕸️ Player Entity Graph</div>
+    <h2>One player. Many wallets. One verdict.</h2>
+    <p class="lead">Players deposit from different chains — and a single wallet tells only a fraction of the story. PlayerLens merges every wallet you attach to a player into one entity, and suggests likely linked wallets found on-chain.</p>
+    <ul class="bullets b-ent">
+      <li>True net worth across TRON, ETH, and BTC — a "small" player on one chain may be a whale on another</li>
+      <li>Cross-chain multi-account detection: linked wallets funding different accounts</li>
+      <li>Suspected links with confidence scores — you confirm, the graph learns</li>
+    </ul>
+  </div>
+  <div class="mock">
+    <div class="mock-head"><b>Player #4821 · entity view</b><span class="live">3 WALLETS</span></div>
+    <div class="verdict-mock">
+      <div class="score-ring" style="background:conic-gradient(#fbbf24 0 95%,var(--card) 95% 100%)"><div><b>95</b><small>entity VIP</small></div></div>
+      <div>
+        <b style="font-size:18px">Whale · was scored 57 as a single wallet</b>
+        <small style="color:var(--muted);display:block;margin-top:6px">$616K combined volume · $229K balance across 3 chains. TRON wallet alone looked like a regular player.</small>
+      </div>
+    </div>
+    <div class="alert" style="margin-top:14px"><div class="ic">🔗</div><div><b>TRON · TRegular…XXX<span class="pill" style="background:#3a1220;color:#ff6b81">TRON</span></b><small>$9.4K in · casino-provided</small></div><div class="t">✓</div></div>
+    <div class="alert"><div class="ic">🔗</div><div><b>ETH · 0x8f31c2…e2a1<span class="pill" style="background:#161d3d;color:#8ca6ff">ETH</span></b><small>$511K in · casino-provided</small></div><div class="t">✓</div></div>
+    <div class="alert"><div class="ic">❓</div><div><b>BTC · bc1qxy2k…0wlh<span class="pill" style="background:#332008;color:#f7931a">BTC</span></b><small>$96K in · suspected: same CEX deposit address · confidence 0.87</small></div><div class="t">confirm?</div></div>
+  </div>
+</div></section>
+
+<section id="how">
   <div class="orb" style="width:420px;height:420px;background:#7c5cff;bottom:-200px;right:30%;opacity:.12"></div>
   <div class="wrap" style="text-align:center">
   <div class="chip chip-how">⚡ How It Works</div>

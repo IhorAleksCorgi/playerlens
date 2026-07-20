@@ -64,6 +64,8 @@
   .cp-table .mono{font-family:monospace;font-size:12px;color:var(--muted)}
   .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase}
   .tag-casino{background:#2b1640;color:#c084fc} .tag-exchange{background:#0f2a38;color:#38bdf8} .tag-contract{background:#1f2937;color:#9ca3af}
+  .tag-tron{background:#3a1220;color:#ff6b81} .tag-eth{background:#161d3d;color:#8ca6ff} .tag-btc{background:#332008;color:#f7931a}
+  .link-src{font-size:11px;color:var(--muted)}
   .full{grid-column:1 / -1}
   .footer{color:var(--muted);font-size:12px;margin-top:30px;line-height:1.6}
   @media(max-width:700px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
@@ -75,13 +77,13 @@
     <div class="logo">Player<span>Lens</span></div>
     <a class="back" href="index.html">← Back to site</a>
   </div>
-  <div class="tagline">Player wallet verdict in seconds — VIP, risk, gambling footprint. TRON / USDT.</div>
+  <div class="tagline">Player-level verdict in seconds — VIP, risk, gambling footprint. One wallet or the player's whole entity.</div>
 
   <div class="searchbar">
-    <input id="addr" placeholder="Player's TRON address (T...)" spellcheck="false">
+    <input id="addr" placeholder="Player's TRON address — or several, comma-separated (T..., T...)" spellcheck="false">
     <button id="go">Get verdict</button>
   </div>
-  <div class="demos">Demo: <a data-demo="demo:whale">whale</a> <a data-demo="demo:hunter">bonus hunter</a> <a data-demo="demo:regular">regular player</a></div>
+  <div class="demos">Demo: <a data-demo="demo:whale">whale</a> <a data-demo="demo:hunter">bonus hunter</a> <a data-demo="demo:regular">regular player</a> <a data-demo="demo:entity">multi-chain player entity</a></div>
 
   <div id="progress" class="progress hidden"></div>
   <div id="err" class="error hidden"></div>
@@ -108,6 +110,10 @@
           </div>
         </div>
         <div class="summary" id="summary"></div>
+      </div>
+
+      <div class="card full hidden" id="walletsCard"><h3>Linked wallets (player entity)</h3>
+        <table class="cp-table"><thead><tr><th>Wallet</th><th>Chain</th><th>Volume in</th><th>Balance</th><th>Link source</th></tr></thead><tbody id="wallets"></tbody></table>
       </div>
 
       <div class="card"><h3>Wallet metrics</h3><div class="metrics" id="metrics"></div></div>
@@ -361,6 +367,69 @@ const DEMO = {
   },
 };
 
+/* Multi-chain player entity demo: same player, three wallets on three chains.
+   Alone, the TRON wallet looks like a regular player — merged, he's a whale. */
+DEMO["demo:entity"] = {
+  address:"Player #4821 (3 linked wallets)", exists:true,
+  wallet_age_days:684, days_since_last_activity:0.4,
+  trx_balance:260, usdt_balance:229150, transfers_analyzed:1418,
+  total_in_usdt:616400, total_out_usdt:531200, avg_in_usdt:3390, max_in_usdt:60000,
+  funding_source:{address:"0xBinance7", amount:40000, label:"Binance (hot)", type:"exchange"},
+  wallets:[
+    {address:"TRegularDemoAddressXXXXXXXXXXXXXXX", chain:"tron", in_usdt:9400, balance:1150, src:"casino-provided"},
+    {address:"0x8f31c2…e2a1", chain:"eth", in_usdt:511000, balance:187000, src:"casino-provided"},
+    {address:"bc1qxy2k…0wlh", chain:"btc", in_usdt:96000, balance:41000, src:"suspected · same CEX deposit addr · 0.87"},
+  ],
+  counterparties:[
+    {address:"0xStakeEthHotXXXXXXXXXXXXXXXXXXXX", name:"Stake.com (ETH)", type:"casino", in_usdt:88000, out_usdt:214000, tx_count:301},
+    {address:"TCasinoX9", name:"Stake.com (TRON)", type:"casino", in_usdt:1900, out_usdt:3400, tx_count:44},
+    {address:"bc1RollbitHotXXXXXXXXXXXXXXXXXXXX", name:"Rollbit (BTC)", type:"casino", in_usdt:21000, out_usdt:64000, tx_count:57},
+    {address:"0xBinance7XXXXXXXXXXXXXXXXXXXXXXXX", name:"Binance (hot)", type:"exchange", in_usdt:390000, out_usdt:120000, tx_count:112},
+  ],
+  casino_flows:[
+    {address:"0xStakeEthHot", name:"Stake.com (ETH)", type:"casino", in_usdt:88000, out_usdt:214000, tx_count:301},
+    {address:"bc1RollbitHot", name:"Rollbit (BTC)", type:"casino", in_usdt:21000, out_usdt:64000, tx_count:57},
+    {address:"TCasinoX9", name:"Stake.com (TRON)", type:"casino", in_usdt:1900, out_usdt:3400, tx_count:44},
+  ],
+  exchange_flow_usdt:510000, error:null,
+};
+
+/* ============ ENTITY MERGE ============ */
+function mergeProfiles(profiles){
+  const m = {
+    address: `Entity (${profiles.length} wallets)`, exists: profiles.some(p => p.exists),
+    wallet_age_days: Math.max(...profiles.map(p => p.wallet_age_days)),
+    days_since_last_activity: Math.min(...profiles.map(p => p.days_since_last_activity)),
+    trx_balance: 0, usdt_balance: 0, transfers_analyzed: 0,
+    total_in_usdt: 0, total_out_usdt: 0, avg_in_usdt: 0, max_in_usdt: 0,
+    funding_source: {}, counterparties: [], casino_flows: [], exchange_flow_usdt: 0, error: null,
+    wallets: [],
+  };
+  const cps = {};
+  let inCount = 0;
+  for(const p of profiles){
+    m.trx_balance += p.trx_balance; m.usdt_balance += p.usdt_balance;
+    m.transfers_analyzed += p.transfers_analyzed;
+    m.total_in_usdt += p.total_in_usdt; m.total_out_usdt += p.total_out_usdt;
+    m.max_in_usdt = Math.max(m.max_in_usdt, p.max_in_usdt);
+    m.exchange_flow_usdt += p.exchange_flow_usdt;
+    if(p.avg_in_usdt > 0){ inCount += Math.round(p.total_in_usdt / p.avg_in_usdt); }
+    m.wallets.push({address: p.address, chain: "tron", in_usdt: p.total_in_usdt, balance: p.usdt_balance, src: "provided"});
+    for(const c of p.counterparties){
+      const key = c.address;
+      if(!cps[key]) cps[key] = {...c};
+      else { cps[key].in_usdt += c.in_usdt; cps[key].out_usdt += c.out_usdt; cps[key].tx_count += c.tx_count; }
+    }
+    // oldest wallet's funding source wins
+    if(!m.funding_source.address || p.wallet_age_days === m.wallet_age_days) m.funding_source = p.funding_source;
+  }
+  m.avg_in_usdt = inCount ? +(m.total_in_usdt / inCount).toFixed(2) : 0;
+  m.counterparties = Object.values(cps).sort((a,b) => (b.in_usdt + b.out_usdt) - (a.in_usdt + a.out_usdt)).slice(0, 12);
+  m.casino_flows = m.counterparties.filter(c => c.type === "casino");
+  m.total_in_usdt = +m.total_in_usdt.toFixed(2); m.total_out_usdt = +m.total_out_usdt.toFixed(2);
+  return m;
+}
+
 /* ============ UI ============ */
 if(typeof document !== "undefined"){
   const $ = id => document.getElementById(id);
@@ -377,12 +446,22 @@ if(typeof document !== "undefined"){
     try{
       let profile, demo = false;
       if(DEMO[addr]){ profile = DEMO[addr]; demo = true; }
-      else if(!TRON_RE.test(addr)) throw new Error("Invalid TRON address (or use demo:whale / demo:hunter / demo:regular)");
-      else if(cache[addr]) profile = cache[addr];
       else {
-        $("progress").classList.remove("hidden");
-        profile = await buildProfile(addr, msg => $("progress").textContent = msg);
-        cache[addr] = profile;
+        const addrs = [...new Set(addr.split(/[\s,;]+/).filter(Boolean))];
+        const bad = addrs.find(a => !TRON_RE.test(a));
+        if(bad) throw new Error(`Invalid TRON address: ${bad} (or use demo:whale / demo:hunter / demo:regular / demo:entity)`);
+        const key = addrs.slice().sort().join("|");
+        if(cache[key]) profile = cache[key];
+        else {
+          $("progress").classList.remove("hidden");
+          const profiles = [];
+          for(let i = 0; i < addrs.length; i++){
+            const pre = addrs.length > 1 ? `Wallet ${i+1}/${addrs.length}: ` : "";
+            profiles.push(await buildProfile(addrs[i], msg => $("progress").textContent = pre + msg));
+          }
+          profile = profiles.length === 1 ? profiles[0] : mergeProfiles(profiles);
+          cache[key] = profile;
+        }
       }
       render(profile, computeVerdict(profile), demo);
     }catch(e){
@@ -398,6 +477,17 @@ if(typeof document !== "undefined"){
   function render(p, v, demo){
     $("result").classList.remove("hidden");
     $("demoBadge").classList.toggle("hidden", !demo);
+
+    // linked wallets (player entity)
+    const ws = p.wallets || [];
+    $("walletsCard").classList.toggle("hidden", ws.length < 2);
+    if(ws.length >= 2){
+      $("wallets").innerHTML = ws.map(w => `
+        <tr><td><span class="mono">${w.address.length > 20 ? w.address.slice(0,18) + "…" : w.address}</span></td>
+        <td><span class="tag tag-${w.chain}">${w.chain.toUpperCase()}</span></td>
+        <td>${usd(w.in_usdt)}</td><td>${usd(w.balance)}</td>
+        <td class="link-src">${w.src}</td></tr>`).join("");
+    }
 
     const score = v.vip_score, arc = $("gaugeArc");
     arc.style.strokeDashoffset = 301.6 * (1 - score / 100);
